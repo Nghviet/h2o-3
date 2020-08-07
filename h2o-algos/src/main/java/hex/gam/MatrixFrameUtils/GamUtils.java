@@ -9,7 +9,6 @@ import hex.glm.GLMModel.GLMParameters;
 import water.DKV;
 import water.Key;
 import water.MemoryManager;
-import water.Scope;
 import water.fvec.Frame;
 import water.fvec.Vec;
 import water.util.ArrayUtils;
@@ -93,6 +92,7 @@ public class GamUtils {
     setParamField(parms, glmParam, true, field2);
     glmParam._train = trainData._key;
     glmParam._valid = valid==null?null:valid._key;
+   // glmParam._nfolds = 1;
     return glmParam;
   }
 

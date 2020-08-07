@@ -258,10 +258,10 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     return new GAMDriver();
   }
 
-  @Override
+/*  @Override
   protected int nModelsInParallel(int folds) {
     return nModelsInParallel(folds, 2);
-  }
+  }*/
 
   private class GAMDriver extends Driver {
     double[][][] _zTranspose; // store for each GAM predictor transpose(Z) matrix
