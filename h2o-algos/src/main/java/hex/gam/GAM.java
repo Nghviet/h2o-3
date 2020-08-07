@@ -72,6 +72,15 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
   }
   
   double[][] _knots;
+  boolean _cv_on = false;
+
+  @Override
+  public void computeCrossValidation() {
+    _cv_on = true;  // set cross-validation on to be true
+    if (error_count() > 0)
+      throw H2OModelBuilderIllegalArgumentException.makeFromBuilder(GAM.this);
+    super.computeCrossValidation();
+  }
 
   /***
    * This method will look at the keys of knots stored in _parms._knot_ids and copy them over to double[][]
@@ -258,10 +267,10 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     return new GAMDriver();
   }
 
-/*  @Override
+  @Override
   protected int nModelsInParallel(int folds) {
-    return nModelsInParallel(folds, 2);
-  }*/
+    return nModelsInParallel(folds,2);
+  }
 
   private class GAMDriver extends Driver {
     double[][][] _zTranspose; // store for each GAM predictor transpose(Z) matrix

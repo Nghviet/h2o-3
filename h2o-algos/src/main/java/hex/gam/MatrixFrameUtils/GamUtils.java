@@ -92,7 +92,7 @@ public class GamUtils {
     setParamField(parms, glmParam, true, field2);
     glmParam._train = trainData._key;
     glmParam._valid = valid==null?null:valid._key;
-   // glmParam._nfolds = 1;
+    glmParam._nfolds = 0;
     return glmParam;
   }
 
