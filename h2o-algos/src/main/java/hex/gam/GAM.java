@@ -82,12 +82,16 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     super.computeCrossValidation();
   }
 
-  /***
-   * This method will look at the keys of knots stored in _parms._knot_ids and copy them over to double[][]
-   * array.
-   *
-   * @return double[][] array containing the knots specified by users
-   */
+  @Override
+  public void cv_computeAndSetOptimalParameters(ModelBuilder[] cvModelBuilders) {
+    _cv_on = false;
+  }
+    /***
+     * This method will look at the keys of knots stored in _parms._knot_ids and copy them over to double[][]
+     * array.
+     *
+     * @return double[][] array containing the knots specified by users
+     */
   public double[][] generateKnotsFromKeys() {
     int numGamCols = _parms._gam_columns.length;
     double[][] knots = new double[numGamCols][];
@@ -455,7 +459,7 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         }
         if (dinfo!=null)
           dinfo.remove();
-        if (newValidFrame != null) {
+        if (newValidFrame != null && !_cv_on) {
           DKV.remove(newValidFrame._key);
         }
       }
