@@ -449,7 +449,7 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       } finally {
         List<Key<Vec>> keep = new ArrayList<>();
         if (model != null) {
-          if (_parms._keep_gam_cols) {
+          if (_parms._keep_gam_cols || _cv_on) {
             addFrameKeys2Keep(keep, newTFrame._key);
           } else {
             DKV.remove(newTFrame._key);
@@ -459,9 +459,12 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         }
         if (dinfo!=null)
           dinfo.remove();
-        if (newValidFrame != null && !_cv_on) {
-          DKV.remove(newValidFrame._key);
-        }
+        if (newValidFrame != null) {
+          if (_cv_on)
+            addFrameKeys2Keep(keep, newValidFrame._key);
+          else
+            DKV.remove(newValidFrame._key);
+        } 
       }
     }
     
