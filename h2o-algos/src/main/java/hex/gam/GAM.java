@@ -326,7 +326,10 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       int numGamFrame = _parms._gam_columns.length;
       RecursiveAction[] generateGamColumn = new RecursiveAction[numGamFrame];
       for (int index = 0; index < numGamFrame; index++) {
-        final Frame predictVec = new Frame(new String[]{_parms._gam_columns[index]}, new Vec[]{_parms.train().vec(_parms._gam_columns[index])});  // extract the vector to work on
+        final Vec weights_column = (_parms._weights_column == null) ? Vec.makeOne(_parms.train().numRows()) 
+                : _parms.train().vec(_parms._weights_column);
+        final Frame predictVec = new Frame(new String[]{_parms._gam_columns[index], "weights_column"}, 
+                new Vec[]{_parms.train().vec(_parms._gam_columns[index]), weights_column});  // extract the vector to work on
         final int numKnots = _parms._num_knots[index];  // grab number of knots to generate
         final int numKnotsM1 = numKnots - 1;
         final int splineType = _parms._bs[index];
