@@ -1,6 +1,9 @@
 package hex.gam;
 
-import hex.*;
+import hex.DataInfo;
+import hex.ModelBuilder;
+import hex.ModelCategory;
+import hex.ModelMetrics;
 import hex.gam.GAMModel.GAMParameters;
 import hex.gam.MatrixFrameUtils.GamUtils;
 import hex.gam.MatrixFrameUtils.GenerateGamMatrixOneColumn;
@@ -23,8 +26,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static hex.gam.GAMModel.cleanUpInputFrame;
-import static hex.gam.MatrixFrameUtils.GamUtils.AllocateType.*;
 import static hex.gam.MatrixFrameUtils.GamUtils.*;
+import static hex.gam.MatrixFrameUtils.GamUtils.AllocateType.*;
 import static hex.genmodel.utils.ArrayUtils.flat;
 import static hex.glm.GLMModel.GLMParameters.Family.multinomial;
 import static hex.glm.GLMModel.GLMParameters.Family.ordinal;
@@ -84,7 +87,7 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
 
   @Override
   public void cv_computeAndSetOptimalParameters(ModelBuilder[] cvModelBuilders) {
-    _cv_on = false;
+    System.out.println("don't know what I am to do.");
   }
     /***
      * This method will look at the keys of knots stored in _parms._knot_ids and copy them over to double[][]
@@ -447,9 +450,31 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
           scoreGenModelMetrics(model, valid(), false); // score validation dataset and generate model metrics
         }
       } finally {
+        // below is new code to accommodate cross-validation
         List<Key<Vec>> keep = new ArrayList<>();
         if (model != null) {
-          if (_parms._keep_gam_cols || _cv_on) {
+          if (_parms._keep_gam_cols) {
+            addFrameKeys2Keep(keep, newTFrame._key);
+          } else {
+            DKV.remove(newTFrame._key);
+          }
+        }
+        if (dinfo != null)
+          dinfo.remove();
+        
+        if (_cv_on) {
+          addFrameKeys2Keep(keep, _valid._key); // keep valid frame key around
+          addFrameKeys2Keep(keep, newValidFrame._key);
+        } else if (newValidFrame != null) {
+          DKV.remove(newValidFrame._key);
+        }
+
+        model.unlock(_job);
+        Scope.untrack(keep);  // leave the vectors alone.
+        // below is the original implementation
+/*        List<Key<Vec>> keep = new ArrayList<>();
+        if (model != null) {
+          if (_parms._keep_gam_cols) {
             addFrameKeys2Keep(keep, newTFrame._key);
           } else {
             DKV.remove(newTFrame._key);
@@ -460,11 +485,8 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         if (dinfo!=null)
           dinfo.remove();
         if (newValidFrame != null) {
-          if (_cv_on)
-            addFrameKeys2Keep(keep, newValidFrame._key);
-          else
-            DKV.remove(newValidFrame._key);
-        } 
+          DKV.remove(newValidFrame._key);
+        }*/
       }
     }
     

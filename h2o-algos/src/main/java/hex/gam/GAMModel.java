@@ -217,6 +217,17 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     }
   }
 
+  /** Score an already adapted frame.  Returns a MetricBuilder that can be used to make a model metrics.
+   * @param adaptFrm Already adapted frame
+   * @return MetricBuilder
+   */
+  @Override
+  protected ModelMetrics.MetricBuilder scoreMetrics(Frame adaptFrm) {
+    GAMScore gs = makeScoringTask(adaptFrm,false,null, true);// doAll(names.length,Vec.T_NUM,adaptFrm);
+    assert gs._dinfo._valid:"_valid flag should be set on data info when doing scoring";
+    return gs.doAll(gs._dinfo._adaptedFrame)._mb;
+  }
+
   @SuppressWarnings("WeakerAccess")
   public static class GAMParameters extends Model.Parameters {
     // the following parameters will be passed to GLM algos
@@ -510,7 +521,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
                                    CFuncRef customMetricFunc) {
     String[] predictNames = makeScoringNames();
     String[][] domains = new String[predictNames.length][];
-    GAMScore gs = makeScoringTask(adaptFrm, j, computeMetrics);
+    GAMScore gs = makeScoringTask(adaptFrm, true, j, computeMetrics);
     gs.doAll(predictNames.length, Vec.T_NUM, gs._dinfo._adaptedFrame);
     if (gs._computeMetrics)
       gs._mb.makeModelMetrics(this, fr, adaptFrm, gs.outputFrame());
@@ -518,7 +529,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     return gs.outputFrame(Key.make(destination_key), predictNames, domains);  // place holder
   }
   
-  private GAMScore makeScoringTask(Frame adaptFrm, Job j, boolean computeMetrics) {
+  private GAMScore makeScoringTask(Frame adaptFrm, boolean makePredictions, Job j, boolean computeMetrics) {
     int responseId = adaptFrm.find(_output.responseName());
     if(responseId > -1 && adaptFrm.vec(responseId).isBad()) { // remove inserted invalid response
       adaptFrm = new Frame(adaptFrm.names(),adaptFrm.vecs());
@@ -528,7 +539,8 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     String [] domain = _output.nclasses()<=1 ? null : (!detectedComputeMetrics ? _output._domains[_output._domains.length-1] : adaptFrm.lastVec().domain());
     if (_parms._family.equals(Family.quasibinomial))
       domain = _output._responseDomains;
-    return new GAMScore(j, this, _output._dinfo.scoringInfo(_output._names,adaptFrm),domain,detectedComputeMetrics);
+    return new GAMScore(j, this, _output._dinfo.scoringInfo(_output._names,adaptFrm),domain,detectedComputeMetrics, 
+            makePredictions);
   }
 
   private class GAMScore extends MRTask<GAMScore> {
@@ -546,12 +558,14 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     private int _lastClass;
     ModelMetrics.MetricBuilder _mb;
     final boolean _sparse;
+    final boolean _generatePredictions;
     private transient double[][] _vcov;
     private transient double[] _tmp;
     private boolean _classifier2class;
 
 
-    private GAMScore(Job j, GAMModel m, DataInfo dinfo, String[] domain, boolean computeMetrics) {
+    private GAMScore(Job j, GAMModel m, DataInfo dinfo, String[] domain, boolean computeMetrics, 
+                     boolean makePredictions) {
       _j = j;
       _m = m;
       _computeMetrics = computeMetrics;
@@ -559,6 +573,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
       _predDomains = domain;
       _m._parms = m._parms;
       _nclass = m._output.nclasses();
+      _generatePredictions = makePredictions;
       _classifier2class = _m._parms._family == GLMModel.GLMParameters.Family.binomial || 
               _m._parms._family == Family.quasibinomial || _m._parms._family == Family.fractionalbinomial;
       if(_m._parms._family == GLMModel.GLMParameters.Family.multinomial ||
@@ -631,11 +646,13 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
         case ordinal: ps = scoreOrdinalRow(r, r.offset, ps); break;
         default: ps = scoreRow(r, r.offset, ps); break;
       }
-      for (int predCol=0; predCol < ncols; predCol++) { // write prediction to NewChunk
-        preds[predCol].addNum(ps[predCol]);
+      if (_generatePredictions) {
+        for (int predCol = 0; predCol < ncols; predCol++) { // write prediction to NewChunk
+          preds[predCol].addNum(ps[predCol]);
+        }
+        if (_vcov != null)
+          preds[ncols].addNum(Math.sqrt(r.innerProduct(r.mtrxMul(_vcov, _tmp))));
       }
-      if (_vcov != null) 
-        preds[ncols].addNum(Math.sqrt(r.innerProduct(r.mtrxMul(_vcov, _tmp))));
     }
 
     public double[] scoreRow(DataInfo.Row r, double offset, double[] preds) {
