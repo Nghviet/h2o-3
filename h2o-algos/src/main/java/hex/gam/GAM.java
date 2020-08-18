@@ -90,19 +90,21 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     super.computeCrossValidation();
   }
 
-  // find the best alpha/lambda values used to build the main model moving forward by looking at the deviance
+  // find the best alpha/lambda values used to build the main model moving forward by looking at the devianceValid
   @Override
   public void cv_computeAndSetOptimalParameters(ModelBuilder[] cvModelBuilders) {
+    double deviance_valid = Double.POSITIVE_INFINITY;
+    double best_alpha = 0;
+    double best_lambda = 0;
     for (int i = 0; i < cvModelBuilders.length; ++i) {  // run cv for each lambda value
       GAMModel g = (GAMModel) cvModelBuilders[i].dest().get();
-      System.out.println("Wow");
-/*      if (g._model._output._submodels[lidx] != null) {
-        double lambda = g._model._output._submodels[lidx].lambda_value;
-        g._driver.computeSubmodel(lidx, lambda, Double.NaN, Double.NaN);
-        testDev += g._model._output._submodels[lidx].devianceValid;
-        testDevSq += g._model._output._submodels[lidx].devianceValid * g._model._output._submodels[lidx].devianceValid;
-      }*/
+      if (g._output._devianceValid < deviance_valid) {
+        best_alpha= g._output._best_alpha;
+        best_lambda = g._output._best_lambda;
+      }
     }
+    _cv_alpha = new double[]{best_alpha};
+    _cv_lambda = new double[]{best_lambda};
     _doInit = false;
   }
     /***
@@ -519,6 +521,11 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
 
     GLMModel buildGLMModel(GAMParameters parms, Frame trainData, Frame validFrame) {
       GLMParameters glmParam = GamUtils.copyGAMParams2GLMParams(parms, trainData, validFrame);  // copy parameter from GAM to GLM
+      if (_cv_lambda != null) { // set alpha and lambda values from cross-validation to build main model 
+        glmParam._lambda = _cv_lambda;
+        glmParam._alpha = _cv_alpha;
+        glmParam._lambda_search = false;
+      }
       int numGamCols = _parms._gam_columns.length;
       for (int find = 0; find < numGamCols; find++) {
         if ((_parms._scale != null) && (_parms._scale[find] != 1.0))
@@ -539,9 +546,11 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       model._output._binvD = _binvD;
       model._output._knots = _knots;
       model._output._numKnots = _numKnots;
+      model._output._best_alpha = glm._output.getSubmodel(glm._output._selected_submodel_idx).alpha_value;
+      model._output._best_lambda = glm._output.getSubmodel(glm._output._selected_submodel_idx).lambda_value;
+      model._output._devianceTrain = glm._output.getSubmodel(glm._output._selected_submodel_idx).devianceTrain;
+      model._output._devianceValid = glm._output.getSubmodel(glm._output._selected_submodel_idx).devianceValid;
       model._gamColMeans = flat(_gamColMeans);
-      model._output._selected_lambda_idx = glm._output._selected_lambda_idx;
-      model._output._selected_alpha_idx = glm._output._selected_alpha_idx;
       if (_parms._lambda == null) // copy over lambdas used
         _parms._lambda = glm._parms._lambda.clone();
       if (_parms._keep_gam_cols)

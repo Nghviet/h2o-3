@@ -373,10 +373,6 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     public TwoDimTable _coefficients_table;
     public TwoDimTable _coefficients_table_no_centering;
     public TwoDimTable _standardized_coefficient_magnitudes;
-    public int _best_lambda_idx; // lambda which minimizes deviance on validation (if provided) or train (if not)
-    public int _lambda_1se = -1; // lambda_best + sd(lambda); only applicable if running lambda search with nfold
-    public int _selected_lambda_idx; // lambda which minimizes deviance on validation (if provided) or train (if not)
-    public int _selected_alpha_idx; // alpha which minimizes deviance on validation (if provided) or train (if not)
     public double[] _model_beta_no_centering; // coefficients generated during model training
     public double[] _standardized_model_beta_no_centering; // standardized coefficients generated during model training
     public double[] _model_beta; // coefficients generated during model training
@@ -385,6 +381,10 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     public double[][] _standardized_model_beta_multinomial_no_centering;  // store standardized multinomial coefficients during model training
     public double[][] _model_beta_multinomial;  // store multinomial coefficients during model training
     public double[][] _standardized_model_beta_multinomial;  // store standardized multinomial coefficients during model training
+    public double _best_alpha;
+    public double _best_lambda;
+    public double _devianceValid = Double.NaN;
+    public double _devianceTrain = Double.NaN;
     private double[] _zvalues;
     private double _dispersion;
     private boolean _dispersionEstimated;

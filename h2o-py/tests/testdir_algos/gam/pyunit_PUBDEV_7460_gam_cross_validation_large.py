@@ -24,8 +24,8 @@ def test_gam_model_predict():
 
     gam_multi = H2OGeneralizedAdditiveEstimator(family='multinomial', solver='IRLSM', gam_columns=["Slope"], 
                                                 scale = [0.0001], num_knots=[5], standardize=True, nfolds=2, 
-                                                max_iterations=3, fold_assignment = 'modulo', alpha=[0.9,0.5,0.1], 
-                                                lambda_search=True, nlambdas=5)
+                                                fold_assignment = 'modulo', alpha=[0.9,0.5,0.1], lambda_search=True,
+                                                nlambdas=5, max_iterations=3)
     gam_multi.train(covtype_X, covtype_y, training_frame=train)
     gam_multi.summary()
     gam_tr_metrics = gam_multi._model_json['output']['training_metrics']._metric_json
