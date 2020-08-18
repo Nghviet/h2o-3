@@ -376,6 +376,7 @@ public class GAMModel extends Model<GAMModel, GAMModel.GAMParameters, GAMModel.G
     public int _best_lambda_idx; // lambda which minimizes deviance on validation (if provided) or train (if not)
     public int _lambda_1se = -1; // lambda_best + sd(lambda); only applicable if running lambda search with nfold
     public int _selected_lambda_idx; // lambda which minimizes deviance on validation (if provided) or train (if not)
+    public int _selected_alpha_idx; // alpha which minimizes deviance on validation (if provided) or train (if not)
     public double[] _model_beta_no_centering; // coefficients generated during model training
     public double[] _standardized_model_beta_no_centering; // standardized coefficients generated during model training
     public double[] _model_beta; // coefficients generated during model training

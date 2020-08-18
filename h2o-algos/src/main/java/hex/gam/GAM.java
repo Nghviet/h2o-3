@@ -409,7 +409,7 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     
     @Override
     public void computeImpl() {
-      if (_doInit)
+      if (_doInit)  // disable when in CV and building main model
         init(true);     //this can change the seed if it was set to -1
       if (error_count() > 0)   // if something goes wrong, let's throw a fit
         throw H2OModelBuilderIllegalArgumentException.makeFromBuilder(GAM.this);
@@ -540,6 +540,10 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       model._output._knots = _knots;
       model._output._numKnots = _numKnots;
       model._gamColMeans = flat(_gamColMeans);
+      model._output._selected_lambda_idx = glm._output._selected_lambda_idx;
+      model._output._selected_alpha_idx = glm._output._selected_alpha_idx;
+      if (_parms._lambda == null) // copy over lambdas used
+        _parms._lambda = glm._parms._lambda.clone();
       if (_parms._keep_gam_cols)
         model._output._gam_transformed_center_key = model._output._gamTransformedTrainCenter.toString();
       if (_parms._savePenaltyMat) {
