@@ -34,7 +34,13 @@ import static hex.glm.GLMModel.GLMParameters.Family.ordinal;
 
 
 public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel.GAMModelOutput> {
-
+  double[][] _knots;
+  boolean _cv_on = false; // set to true if cross-validation is enabled
+  boolean _doInit = true; // perform init inside computeImpl if true and false to skip during main model of cv on
+  double[] _cv_alpha = null;  // best alpha value found from cross-validation
+  double[] _cv_lambda = null; // bset lambda value found from cross-validation
+  // add future hyper-parameters that we want to find during cross-validation here
+  
   @Override
   public ModelCategory[] can_build() {
     return new ModelCategory[]{ModelCategory.Regression};
@@ -73,10 +79,9 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     super(parms, key);
     init(false);
   }
-  
-  double[][] _knots;
-  boolean _cv_on = false;
 
+  // cross validation can be used to choose the best alpha/lambda values among a whole collection of alpha
+  // and lambda values.  Future hyperparameters can be added for cross-validation to choose as well.
   @Override
   public void computeCrossValidation() {
     _cv_on = true;  // set cross-validation on to be true
@@ -85,9 +90,20 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     super.computeCrossValidation();
   }
 
+  // find the best alpha/lambda values used to build the main model moving forward by looking at the deviance
   @Override
   public void cv_computeAndSetOptimalParameters(ModelBuilder[] cvModelBuilders) {
-    System.out.println("don't know what I am to do.");
+    for (int i = 0; i < cvModelBuilders.length; ++i) {  // run cv for each lambda value
+      GAMModel g = (GAMModel) cvModelBuilders[i].dest().get();
+      System.out.println("Wow");
+/*      if (g._model._output._submodels[lidx] != null) {
+        double lambda = g._model._output._submodels[lidx].lambda_value;
+        g._driver.computeSubmodel(lidx, lambda, Double.NaN, Double.NaN);
+        testDev += g._model._output._submodels[lidx].devianceValid;
+        testDevSq += g._model._output._submodels[lidx].devianceValid * g._model._output._submodels[lidx].devianceValid;
+      }*/
+    }
+    _doInit = false;
   }
     /***
      * This method will look at the keys of knots stored in _parms._knot_ids and copy them over to double[][]
@@ -234,7 +250,6 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
           error("gam colum number", "Number of gam columns implied from _num_knots and _knot_ids do not" +
                   " match.");
       }
-      _knots = generateKnotsFromKeys(); // generate knots and verify that they are given correctly
       if ( _parms._saveZMatrix && ((_train.numCols() - 1 + _parms._num_knots.length) < 2))
         error("_saveZMatrix", "can only be enabled if we number of predictors plus" +
                 " Gam columns in gam_columns exceeds 2");
@@ -394,10 +409,12 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
     
     @Override
     public void computeImpl() {
-      init(true);     //this can change the seed if it was set to -1
+      if (_doInit)
+        init(true);     //this can change the seed if it was set to -1
       if (error_count() > 0)   // if something goes wrong, let's throw a fit
         throw H2OModelBuilderIllegalArgumentException.makeFromBuilder(GAM.this);
-
+      
+      _knots = generateKnotsFromKeys(); // generate knots and verify that they are given correctly
       Frame newTFrame = new Frame(rebalance(adaptTrain(), false, _result+".temporary.train"));  // get frames with correct predictors and spline functions
       verifyGamTransformedFrame(newTFrame);
       
@@ -462,31 +479,16 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         if (dinfo != null)
           dinfo.remove();
         
-        if (_cv_on) {
-          addFrameKeys2Keep(keep, _valid._key); // keep valid frame key around
-          addFrameKeys2Keep(keep, newValidFrame._key);
-        } else if (newValidFrame != null) {
-          DKV.remove(newValidFrame._key);
+        if (newValidFrame != null) {
+          if (_cv_on) {
+            addFrameKeys2Keep(keep, newValidFrame._key);
+          } else {
+            DKV.remove(newValidFrame._key);
+          }
         }
 
         model.unlock(_job);
         Scope.untrack(keep);  // leave the vectors alone.
-        // below is the original implementation
-/*        List<Key<Vec>> keep = new ArrayList<>();
-        if (model != null) {
-          if (_parms._keep_gam_cols) {
-            addFrameKeys2Keep(keep, newTFrame._key);
-          } else {
-            DKV.remove(newTFrame._key);
-          }
-          model.unlock(_job);
-          Scope.untrack(keep);  // leave the vectors alone.
-        }
-        if (dinfo!=null)
-          dinfo.remove();
-        if (newValidFrame != null) {
-          DKV.remove(newValidFrame._key);
-        }*/
       }
     }
     

@@ -90,35 +90,16 @@ public class GamUtils {
     setParamField(parms, glmParam, false, field1);
     Field[] field2 = Model.Parameters.class.getDeclaredFields();
     setParamField(parms, glmParam, true, field2);
- //   detectCVandSetWeight(trainData, glmParam);
     glmParam._train = trainData._key;
     glmParam._valid = valid==null?null:valid._key;
     glmParam._nfolds = 0; // always set nfolds to 0 to disable cv in GLM.  It is done in GAM
+    glmParam._fold_assignment = Model.Parameters.FoldAssignmentScheme.AUTO;
+    glmParam._keep_cross_validation_fold_assignment = false;
+    glmParam._keep_cross_validation_models = false;
+    glmParam._keep_cross_validation_predictions = false;
     glmParam._is_cv_model = false; // disable cv in GLM.
     return glmParam;
   }
-
-  /***
-   * This internal method will take a H2O Frame and check to see if it contains the weight column with name
-   * __internal_cv_weights__.  The presence of this column will indicate that cross validation is enabled.
-   * If this is the case, we need to change the name of the weight column in order not to enable cross validation
-   * in GLM when we call it to find the coefficients of our GAM model.
-   * 
-   * @param trainData: H2O Frame containing training dataset
-   */
-/*  public static void detectCVandSetWeight(Frame trainData, GLMParameters glmParams) {
-    String cvWeights = "__internal_cv_weights__";
-    String[] colNames = trainData.names();
-    int colNamesLength = colNames.length;
-    if (Arrays.asList(colNames).contains(cvWeights)) {
-      String[] newColNames = colNames.clone();
-      int colIndex = IntStream.range(0, colNames.length).filter(i -> colNames[i] == cvWeights).findFirst().orElse(-1);
-      newColNames[colIndex] = cvWeights+cvWeights;
-      glmParams._weights_column = newColNames[colIndex];
-      trainData.setNames(newColNames);
-      DKV.put(trainData); // put changed frame to DKV store
-    }
-  }*/
 
   public static void setParamField(GAMParameters parms, GLMParameters glmParam, boolean superClassParams, Field[] gamFields) {
     // assign relevant GAMParameter fields to GLMParameter fields
