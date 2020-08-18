@@ -102,6 +102,9 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
         best_alpha= g._output._best_alpha;
         best_lambda = g._output._best_lambda;
       }
+      g.write_lock(_job);
+      g.update(_job);
+      g.unlock(_job);
     }
     _cv_alpha = new double[]{best_alpha};
     _cv_lambda = new double[]{best_lambda};
@@ -225,8 +228,6 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       }
       if ((_parms._bs != null) && (_parms._gam_columns.length != _parms._bs.length))  // check length
         error("gam colum number","Number of gam columns implied from _bs and _gam_columns do not match.");
-      if (_parms._bs == null) // default to bs type 0
-        _parms._bs = new int[_parms._gam_columns.length];
       if (_parms._num_knots == null) {  // user did not specify any knot numbers, we will use default 10
         _parms._num_knots = new int[_parms._gam_columns.length];  // different columns may have different
         for (int index = 0; index < _parms._gam_columns.length; index++) {  // for zero value _num_knots, set to valid number
@@ -416,6 +417,8 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
       if (error_count() > 0)   // if something goes wrong, let's throw a fit
         throw H2OModelBuilderIllegalArgumentException.makeFromBuilder(GAM.this);
       
+      if (_parms._bs == null) // default to bs type 0
+        _parms._bs = new int[_parms._gam_columns.length];
       _knots = generateKnotsFromKeys(); // generate knots and verify that they are given correctly
       Frame newTFrame = new Frame(rebalance(adaptTrain(), false, _result+".temporary.train"));  // get frames with correct predictors and spline functions
       verifyGamTransformedFrame(newTFrame);
@@ -488,7 +491,6 @@ public class GAM extends ModelBuilder<GAMModel, GAMModel.GAMParameters, GAMModel
             DKV.remove(newValidFrame._key);
           }
         }
-
         model.unlock(_job);
         Scope.untrack(keep);  // leave the vectors alone.
       }
